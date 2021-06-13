@@ -3,7 +3,6 @@ from django.http.response import HttpResponse
 from django.shortcuts import render
 from django.http import Http404
 from django.http.response import HttpResponse
-from rest_framework.views import APIView
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
@@ -21,7 +20,8 @@ from apiclient.http import MediaIoBaseDownload, MediaFileUpload
 # import tkinter 
 from tkinter import filedialog
 from mttkinter import *
-SCOPES = ['https://www.googleapis.com/auth/drive']
+
+SCOPES = ['https://www.googleapis.com/auth/drive'] #define scopes of the application
 
 
 def build_service():
@@ -53,11 +53,16 @@ def login(request):
 
 
 @api_view()
-def list(request, token):
-    if token == 'None':
+def list(request):
+    #Get the token value
+    token = request.GET.get('token')
+    if token is None:
         pageToken = None
+        print(pageToken)
     else:
         pageToken = token
+
+    #Build the service
     drive_service = build_service()
     results = drive_service.files().list(
                                         pageSize=10,
@@ -77,11 +82,17 @@ def list(request, token):
     return Response(file_list)
 
 @api_view()
-def filename_search(request, filename, token):
-    if token == 'None':
+def filename_search(request):
+    token = request.GET.get('token') #Get the token
+    filename = request.GET.get('name') #Get the filename 
+    if filename is None:
+        return Response("No filename provided")
+    if token is None:
         pageToken = None
+        print(pageToken)
     else:
         pageToken = token
+    #Build the service
     drive_service = build_service()
     results = drive_service.files().list(q=f"name contains '{filename}'",
                                         pageSize=10,
@@ -101,7 +112,17 @@ def filename_search(request, filename, token):
     return Response(file_list)
     
 @api_view()
-def download(request,filename,file_id):
+def download(request):
+    filename = request.GET.get('name') #Get the filename
+    file_id = request.GET.get('id') #Get the file id
+
+    if filename is None:
+        return Response("No filename provided")
+
+    if file_id is None:
+        return Response("No file id provided")
+
+    #Build the service 
     drive_service = build_service()
 
     file = drive_service.files().get_media(fileId=file_id)
@@ -113,12 +134,13 @@ def download(request,filename,file_id):
     with io.open('files/'+filename, 'wb') as f:
         fh.seek(0)
         f.write(fh.read()) 
-    return Response("Download Successfull")
+    return Response(f" '{filename}' file downloaded successfull")
 
 
 @api_view()
 def upload(request):
 
+    #Build the service
     drive_service = build_service()
 
     root = mtTkinter.Tk()
@@ -132,9 +154,12 @@ def upload(request):
                                             media_body=media,
                                             fields='id').execute()
 
+    if not files:
+        return Response("No files selected")
+
     return Response("The files have been uploaded")
 
 
 def logout(request):
-    os.remove("token.json")
+    os.remove("token.json") #Remove user login credentials file
     return HttpResponse("Logout Successful") 
