@@ -58,7 +58,6 @@ def list(request):
     token = request.GET.get('token')
     if token is None:
         pageToken = None
-        print(pageToken)
     else:
         pageToken = token
 
@@ -89,7 +88,6 @@ def filename_search(request):
         return Response("No filename provided")
     if token is None:
         pageToken = None
-        print(pageToken)
     else:
         pageToken = token
     #Build the service
